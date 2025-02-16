@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        <link rel="canonical" href="https://finger-bone.github.io/ali-datawhale-logic-inference/5/">
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>其它增强方法 - LLM Logic Inference</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/color-brewer.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="..">LLM Logic Inference</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href="../1/" class="nav-link">Langchain 基础</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../2/" class="nav-link">Huggingface Transformers</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../3/" class="nav-link">trl 与微调</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../4/" class="nav-link">RAG</a>
+                            </li>
+                            <li class="navitem active">
+                                <a href="./" class="nav-link">其它增强方法</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../4/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" class="nav-link disabled">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#llm" class="nav-link">LLM 上层设施 增强生成</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#_1" class="nav-link">数据增强技术</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#_2" class="nav-link">重采样技术</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#_6" class="nav-link">推理代码</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#_7" class="nav-link">总结</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="llm">LLM 上层设施 增强生成</h1>
+<p>前面几部分中，我们逐次利用了微调、RAG、多路投票技术来提升生成模型的性能。除了微调意外，RAG 和多路投票都称为增强生成技术（Augmented Generation）。AG 是指在生成模型的基础上，通过引入额外的信息或者技术，来提升生成模型的性能。在这一部分，我们将介绍并使用几种常见的 AG 技术，包括已经使用的 RAG 和多路投票，以及将要介绍的重采样技术与数据增强技术。</p>
+<h2 id="_1">数据增强技术</h2>
+<p>数据增强技术是指通过对原始数据进行一系列变换，来生成新的数据。数据增强技术可以提升生成模型的性能，因为生成模型在训练时可以看到更多的数据，从而提升泛化能力。常见的数据增强技术包括，使用同义词替换；使用大模型生成数据；使用机器翻译生成数据。</p>
+<p>同义词替换顾名思义，就是将原始数据中的某些词替换为其同义词。这种方法可以提升生成模型的泛化能力，因为生成模型在训练时可以看到更多的数据。</p>
+<p>使用大模型生成数据是指使用大模型根据已有数据生成新的数据，然后供较小的模型训练（当然，也可以用较小的模型生成，但效果不好）。这种方法可以提升生成模型的性能，因为大模型可以生成更多的数据，从而提升泛化能力。然而，由于幻觉问题，生成的数据可能不符合预期，需要进行清洗，正确性也存疑。</p>
+<p>机器翻译生成数据类似于同义词替换，不过是先把数据翻译成另一种语言，然后再翻译回来。这种方法可以提升生成模型的泛化能力，因为生成模型在训练时可以看到更多的数据。这样的数据比起用大模型生成的数据更加可靠。</p>
+<p>这里我们使用腾讯翻译的 api。</p>
+<pre><code class="language-python">def translate(text: list[str], trans_back=False) -&gt; list[str]:
+    from tencentcloud.common import credential
+    from tencentcloud.tmt.v20180321 import tmt_client, models
+    import os
+    cred = credential.Credential(
+        os.getenv(&quot;TENCENT_SECRET_ID&quot;),
+        os.getenv(&quot;TENCENT_SECRET_KEY&quot;)
+    )
+    from tencentcloud.common.profile.client_profile import ClientProfile
+    from tencentcloud.common.profile.http_profile import HttpProfile
+    httpProfile = HttpProfile()
+    httpProfile.endpoint = &quot;tmt.tencentcloudapi.com&quot;
+    clientProfile = ClientProfile()
+    clientProfile.httpProfile = httpProfile
+    client = tmt_client.TmtClient(cred, &quot;ap-beijing&quot;, clientProfile)
+    request = models.TextTranslateBatchRequest()
+    params = {
+        &quot;Source&quot;: &quot;zh&quot; if not trans_back else &quot;ja&quot;,
+        &quot;Target&quot;: &quot;ja&quot; if not trans_back else &quot;zh&quot;,
+        &quot;ProjectId&quot;: 0,
+        &quot;SourceTextList&quot;: text
+    }
+    import json
+    request.from_json_string(json.dumps(params))
+    response = client.TextTranslateBatch(request)
+    return json.loads(response.to_json_string())[&quot;TargetTextList&quot;]
+
+def translate_entries_inplace(entries: list[Entry], trans_back=False):
+    problems = [entry.problem for entry in entries]
+    translated_problems = translate(problems, trans_back)
+    for entry, translated_problem in zip(entries, translated_problems):
+        entry.problem = translated_problem
+    reasoning_flat = [
+        question.reasoning
+        for entry in entries
+        for question in entry.questions
+    ]
+    translated_reasoning = translate(reasoning_flat, trans_back)
+    reasoning_idx = 0
+    for entry in entries:
+        for question in entry.questions:
+            question.reasoning = translated_reasoning[reasoning_idx]
+            reasoning_idx += 1
+    options_flat = [
+        option
+        for entry in entries
+        for question in entry.questions
+        for option in question.options
+    ]
+    translated_options = translate(options_flat, trans_back)
+    options_idx = 0
+    for entry in entries:
+        for question in entry.questions:
+            question.options = translated_options[options_idx:options_idx+len(question.options)]
+            options_idx += len(question.options)
+    questions_flat = [
+        question.question
+        for entry in entries
+        for question in entry.questions
+    ]
+    translated_questions = translate(questions_flat, trans_back)
+    questions_idx = 0
+    for entry in entries:
+        for question in entry.questions:
+            question.question = translated_questions[questions_idx]
+            questions_idx += 1
+
+batch = 5
+for i in tqdm(range(0, len(export_entries_translated), batch)):
+    from_idx =i
+    to_idx = min(i + batch, len(export_entries_translated))
+    translate_entries_inplace(export_entries_translated[from_idx:to_idx])
+    translate_entries_inplace(export_entries_translated[from_idx:to_idx], True)
+</code></pre>
+<p>这样我们的数据量就翻倍了。不过，我们需要在翻译时去掉翻译类的任务，因为这样的任务翻译后可能会有歧义；在 RAG 时，也不要使用扩展的数据，因为这样子，相似度搜索可能会获得多个相同的问题。</p>
+<p>此外，instruct 不用翻译，至翻译问题，选项和推理。</p>
+<h2 id="_2">重采样技术</h2>
+<p>重采样又称拒绝采样，是一种用于生成模型的采样技术。该种技术是指，当生成模型生成的结果不符合预期时，拒绝该结果并重新生成。常用的方法是打分器。多路投票也可以看作是一种重采样技术。</p>
+<p>打分器是一种用于评估生成结果的技术。在生成模型生成结果后，打分器会对结果进行评分，如果结果不符合预期，则拒绝该结果并重新生成。打分器的设计是一个重要的问题，一个好的打分器可以提升生成模型的性能。</p>
+<p>这里我们使用一个小模型进行全量训练作为打分器。</p>
+<p>这次我们使用 Qwen2 0.5B 模型进行全量训练，用于打分器。如果输入的推理是正确的，那么打分器的输出 1，否则输出 0。</p>
+<h3 id="_3">数据准备</h3>
+<p>之前我们已经生成好了正确的推理数据，然后我们需要一些错误的推理数据。</p>
+<p>这一过程很简单：把我们生成推理数据的 Prompt 的答案改为错误的答案，然后重新生成推理数据，大模型会因为幻觉而进行错误的推理。</p>
+<p>因为本来想要的数据就是错误的，所以我们使用一个小模型即可，这里可以用免费 qwen1.5-0.5b-chat 模型。</p>
+<p>之前虽然生成好了正确的推理数据，为了提高数据的质量，我们用百度千帆提供的 Yi-34B-Chat（免费但有每日配额）和 Qianfan-Chinese-Llama-2-13B 重新生成一遍。这些模型参数量更大，因此生成的推理数据质量更高。</p>
+<pre><code class="language-python">def generate_reasoning_inplace(entries: list[Entry]) -&gt; None:
+    template = &quot;&quot;&quot;你是一个逻辑推理专家，擅长解决逻辑推理问题。以下是一个逻辑推理的题目，形式为单项选择题。所有的问题都是（close-world assumption）闭世界假设，即未观测事实都为假。每个问题都保证能通过一系列基于形式逻辑的推理（包括同一律，矛盾律，排中律的使用等）得到确定的唯一答案。我会向你提供答案，而你要给出逐步的解析来教会我如何得到答案。我是一个小学生，所以每一步的推理不要太复杂。
+{problem}
+
+### 问题
+{question}
+{options}
+
+### 答案
+{answer}
+
+### 分析过程&quot;&quot;&quot;
+    import time
+    import qianfan
+    client = qianfan.ChatCompletion(model=&quot;Qianfan-Chinese-Llama-2-13B&quot;)
+    progress_q = tqdm(total=sum([len(entry.questions) for entry in entries]))
+    import re
+    answer_regex = re.compile(r&quot;答案.*?([A-Z])&quot;)
+    def process_question(entry, question):
+        if question.reasoning is not None:
+            matches = answer_regex.findall(question.reasoning)
+            answer = matches[-1] if len(matches) &gt; 0 else None
+            if answer == None:
+                with open(&quot;./a.txt&quot;, &quot;a&quot;) as f:
+                    f.write(&quot;1\n&quot;)
+                    f.write(question.reasoning)
+                progress_q.update(1)
+                return
+            if answer != question.answer:
+                print(f&quot;答案不匹配: {answer} != {question.answer}&quot;)
+            else:
+                progress_q.update(1)
+                return
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                reasoning_prompt = template.format(**{
+                    &quot;problem&quot;: entry.problem,
+                    &quot;question&quot;: question.question,
+                    &quot;options&quot;: format_options(question.options),
+                    &quot;answer&quot;: question.answer
+                })
+                from qianfan import QfResponse
+                resp = client.do([{
+                    &quot;role&quot;: &quot;user&quot;,
+                    &quot;content&quot;: reasoning_prompt
+                }])
+                question.reasoning = resp.body[&quot;result&quot;]
+                # 答案是 [A-Z]
+                import re
+                matches = answer_regex.findall(question.reasoning)
+                answer = matches[-1] if len(matches) &gt; 0 else None 
+                if answer is None:
+                    break
+                if answer != question.answer:
+                    print(f&quot;答案不匹配: {answer} != {question.answer}&quot;)
+                    # Retry
+                    continue
+                with open(&quot;reasoning.txt&quot;, &quot;a&quot;) as f:
+                    f.write(f&quot;{reasoning_prompt}\n\n{question.reasoning}\n\n&quot;)
+                break  # Exit the loop if successful
+            except Exception as e:
+                if attempt &lt; max_retries - 1:
+                    time.sleep(1)  # Optional: wait a bit before retrying
+                else:
+                    print(f&quot;Failed to process question.&quot;)
+                    print(str(e))
+        progress_q.update(1)
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        futures = []
+        for entry in tqdm(entries):
+            for question in entry.questions:
+                futures.append(executor.submit(process_question, entry, question))
+
+        for future in futures:
+            future.result()
+    progress_q.close()
+</code></pre>
+<p>此外，还有一点要注意，有时候模型的推理给出的答案与我们输入的答案不一致，而且这样的错误数据较多，这样自我们就强迫模型重新生成，至答案一致为止，如果实在得不到正确推理就把它剔除。我们使用简单的正则表达式来提取答案。</p>
+<pre><code class="language-python">import re
+answer_regex = re.compile(r&quot;答案.*?([A-Z])&quot;)
+export_entries = []
+for entry in entries:
+    export_questions = []
+    for question in entry.questions:
+        if question.reasoning is None:
+            continue
+        matches = answer_regex.findall(question.reasoning)
+        answer = matches[-1] if len(matches) &gt; 0 else None
+        if answer is None:
+            continue
+        if answer != question.answer:
+            print(f&quot;答案不匹配: {answer} != {question.answer}&quot;)
+            continue
+        export_questions.append(QuestionItem(
+            question=question.question, options=question.options, reasoning=question.reasoning, answer=answer
+        ))
+    export_entries.append(Entry(problem=entry.problem, questions=export_questions))
+</code></pre>
+<p>之后导出数据即可。</p>
+<h3 id="_4">训练</h3>
+<p>这一次我们使用全量训练。因为模型很小，所以显存占用可以接受。此外，我们还可以使用 lomo 优化器，可参考<a href="https://huggingface.co/docs/transformers/main/en/trainer#lomo-optimizer">这个文档</a>。</p>
+<pre><code class="language-python">#!/usr/bin/env python
+# coding: utf-8
+
+# In[1]:
+
+
+from transformers import Qwen2ForSequenceClassification
+from transformers import Qwen2TokenizerFast
+import torch
+from datasets import Dataset
+from dataclasses import dataclass, field
+
+
+# In[2]:
+
+
+model_path = &quot;./Qwen2-0.5B&quot;
+max_length = 512
+output_dir = &quot;./scorer_output&quot;
+
+
+# In[3]:
+
+
+def get_model_and_tokenizer() -&gt; tuple[Qwen2ForSequenceClassification, Qwen2TokenizerFast]:
+    model = Qwen2ForSequenceClassification.from_pretrained(
+        model_path,
+        num_labels=2,
+    )
+    tokenizer: Qwen2TokenizerFast = Qwen2TokenizerFast.from_pretrained(model_path)
+    model.config.pad_token_id = tokenizer.eos_token_id
+    return model, tokenizer
+
+
+# In[4]:
+
+
+@dataclass
+class QuestionItem:
+    question: str
+    options: list[str]
+    reasoning: str | None = field(default=None)
+    answer: str | None = field(default=None)
+
+@dataclass
+class Entry:
+    problem: str = field(default=&quot;&quot;)
+    questions: list[QuestionItem] = field(default_factory=list)
+
+
+# In[5]:
+
+
+def get_train_dataset() -&gt; Dataset:
+    import pickle
+    entries = pickle.load(open(&quot;./entries.pkl&quot;, &quot;rb&quot;))
+    entries_false = pickle.load(open(&quot;./entries_false.pkl&quot;, &quot;rb&quot;))
+    entries_aug = pickle.load(open(&quot;./entries_aug.pkl&quot;, &quot;rb&quot;))
+    entries_aug_false = pickle.load(open(&quot;./entries_aug_false.pkl&quot;, &quot;rb&quot;))
+    dataset = []
+    for entry in (entries + entries_aug):
+        for question in entry.questions:
+            label = 1
+            dataset.append({
+                &quot;reasoning&quot;: question.reasoning,
+                &quot;labels&quot;: label
+            })
+    for entry in (entries_false + entries_aug_false):
+        for question in entry.questions:
+            label = 0
+            dataset.append({
+                &quot;reasoning&quot;: question.reasoning,
+                &quot;labels&quot;: label
+            })
+    return Dataset.from_list(dataset).shuffle(seed=42)
+
+
+# In[6]:
+
+
+def encode_dataset(dataset: Dataset, tokenizer: Qwen2TokenizerFast) -&gt; Dataset:
+    def encode(examples):
+        encoded = tokenizer(
+            examples[&quot;reasoning&quot;],
+            pad_to_multiple_of=8,
+            max_length=max_length,
+            truncation=True
+        )
+        return encoded
+    return dataset.map(encode, batched=True).remove_columns([&quot;reasoning&quot;])
+
+
+# In[7]:
+
+
+import os
+os.environ[&quot;WANDB_PROJECT&quot;] = &quot;fine-tune-logic-inference-scorer&quot;
+
+
+# In[8]:
+
+
+from trl.trainer import SFTTrainer, SFTConfig
+from transformers import TrainingArguments
+
+def get_config() -&gt; SFTConfig:
+    return SFTConfig(
+        output_dir=output_dir,
+        num_train_epochs=3,
+        learning_rate=1e-4,
+        logging_steps=5,
+        seed=42,
+        optim=&quot;lomo&quot;,
+        lr_scheduler_type=&quot;cosine&quot;,
+        report_to=&quot;wandb&quot;,
+    )
+
+
+# In[9]:
+
+
+def train():
+    from accelerate import Accelerator
+    acc = Accelerator()
+    model, tokenizer = get_model_and_tokenizer()
+    train_dataset = get_train_dataset()
+    train_dataset = encode_dataset(train_dataset, tokenizer)
+    model, tokenizer, train_dataset = acc.prepare(model, tokenizer, train_dataset)
+    config = get_config()
+    from transformers import DataCollatorWithPadding
+    trainer = SFTTrainer(
+        model=model,
+        args=config,
+        train_dataset=train_dataset,
+        data_collator=DataCollatorWithPadding(tokenizer),
+    )
+    trainer.train()
+    trainer.save_model(&quot;model&quot;)
+
+
+# In[10]:
+
+
+if __name__ == &quot;__main__&quot;:
+    train()
+
+
+</code></pre>
+<p>训练过程中，显示 grad_norm 为 0 是正常的，因为 lomo 优化器会卸载梯度，因此不会计算梯度的范数。只要 loss 能降到 0.6 以下（因为是 2 分类问题，random guess 的交叉熵损失是 <script type="math/tex"> 2log2 </script>），就说明是正常的。</p>
+<p><img alt="打分器 logging" src="../image.png" /></p>
+<h3 id="_5">使用打分器</h3>
+<p>使用打分器也很简单，只需要加载模型，然后输入推理即可。</p>
+<pre><code class="language-python">def score_reasoning(reasoning: list[str], scorer: Qwen2ForSequenceClassification, tokenizer: Qwen2TokenizerFast) -&gt; list[float]:
+    encoded = tokenizer(reasoning, padding=True, truncation=True, max_length=max_length, return_tensors=&quot;pt&quot;).to(&quot;cuda&quot;)
+    with torch.no_grad():
+        logits = scorer(**encoded).logits
+    return logits.argmax(dim=-1).detach().cpu().numpy().tolist()
+</code></pre>
+<h2 id="_6">推理代码</h2>
+<p>下面的代码有大量的 monkey patch，但是能跑就好。</p>
+<p>流程图如下，</p>
+<p><img alt="推理流程图" src="../image-1.png" /></p>
+<p>用新的数据重新走完微调、推理流程，即可获得新的结果。</p>
+<pre><code class="language-python">#!/usr/bin/env python
+# coding: utf-8
+
+# In[1]:
+
+
+import warnings
+
+warnings.simplefilter(&quot;ignore&quot;)
+
+
+# In[2]:
+
+
+from transformers import AutoModelForCausalLM, Qwen2TokenizerFast, Qwen2ForSequenceClassification
+from dataclasses import dataclass, field
+from langchain_core.prompts import ChatPromptTemplate
+from tqdm import tqdm
+from datasets import Dataset
+from langchain_core.documents import Document
+from langchain_chroma import Chroma
+from langchain_huggingface import HuggingFaceEmbeddings
+
+embedding_path = &quot;./Dmeta-embedding-zh&quot;
+def get_dataset() -&gt; Dataset:
+    train_dataset = Dataset.load_from_disk(&quot;./train_dataset&quot;)
+    return train_dataset
+def to_doc(row: dict) -&gt; Document:
+    return Document(
+        row[&quot;question&quot;], metadata=row
+    )
+def get_embedding() -&gt; HuggingFaceEmbeddings:
+    return HuggingFaceEmbeddings(model_name=embedding_path)
+def get_db() -&gt; Chroma:
+    db = Chroma.from_documents(
+        [to_doc(row) for row in get_dataset()],
+        get_embedding()
+    )
+    return db
+
+
+def get_scorer() -&gt; Qwen2ForSequenceClassification:
+    m = Qwen2ForSequenceClassification.from_pretrained(&quot;./scorer&quot;, device_map=&quot;auto&quot;, num_labels=2)
+    return m
+
+
+
+# In[3]:
+
+
+model_path = &quot;./qwen2-7b-instruct&quot;
+adapter_path = &quot;./output&quot;
+max_new_tokens = 1024
+max_length = max_new_tokens
+batch_size = 16
+voters = 5
+
+def score_reasoning(reasoning: list[str], scorer: Qwen2ForSequenceClassification, tokenizer: Qwen2TokenizerFast) -&gt; list[float]:
+    encoded = tokenizer(reasoning, padding=True, truncation=True, max_length=max_length, return_tensors=&quot;pt&quot;).to(&quot;cuda&quot;)
+    with torch.no_grad():
+        logits = scorer(**encoded).logits
+    return logits.argmax(dim=-1).detach().cpu().numpy().tolist()
+
+# In[4]:
+
+# In[5]:
+
+
+import json
+
+class EntryEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Entry):
+            return obj.__dict__
+        if isinstance(obj, QuestionItem):
+            return obj.__dict__
+        if isinstance(obj, str):
+            return obj
+        return super().default(obj)
+
+@dataclass
+class QuestionItem:
+    question: str
+    options: list[str]
+    answer: str | None = field(default=None)
+
+@dataclass
+class Entry:
+    problem: str = field(default=&quot;&quot;)
+    questions: list[QuestionItem] = field(default_factory=list)
+    id: str = field(default=&quot;&quot;)
+
+
+# In[6]:
+
+
+def parse_file(file_path: str) -&gt; list[Entry]:
+    with open(file_path, &quot;r&quot;) as f:
+        lines = f.readlines()
+    entries = []
+    import json
+    for line in lines:
+        entry = json.loads(line)
+        questions = []
+        for question in entry[&quot;questions&quot;]:
+            questions.append(QuestionItem(**question))
+        entries.append(Entry(problem=entry[&quot;problem&quot;], questions=questions, id=entry[&quot;id&quot;]))
+    return entries
+
+
+# In[7]:
+
+
+def format_options(options):
+    return '\n'.join(
+        [
+            f'{chr(ord(&quot;A&quot;) + i)}: {option}'
+            for i, option in enumerate(options)
+        ]
+    )
+
+
+# In[8]:
+
+
+# In[9]:
+
+
+def dump_entries(entries: list[Entry], file_path: str):
+    import json
+    with open(file_path, &quot;w&quot;) as f:
+        for entry in entries:
+            f.write(json.dumps(entry, cls=EntryEncoder, ensure_ascii=False) + &quot;\n&quot;)
+
+def build_prompt_no_header(x: dict) -&gt; str:
+    problem = x[&quot;problem&quot;]
+    question = x[&quot;question&quot;]
+    reasoning = x[&quot;reasoning&quot;]
+    answer = x[&quot;answer&quot;]
+    options = x[&quot;options&quot;]
+    full_text = f&quot;&quot;&quot;### 题目        
+{problem}
+
+### 问题
+{question}
+{options}
+
+### 分析过程
+{reasoning}
+
+### 答案
+答案是：{answer}&quot;&quot;&quot;
+    return full_text
+
+def build_prompt(x: dict, db: Chroma) -&gt; str:
+    head = r&quot;&quot;&quot;你是一个逻辑推理专家，擅长解决逻辑推理问题。以下是一个逻辑推理的题目，形式为单项选择题。所有的问题都是（close-world assumption）闭世界假设，即未观测事实都为假。每个问题都保证能通过一系列基于形式逻辑的推理（包括同一律，矛盾律，排中律的使用等）得到确定的答案。请逐步分析问题，写出思考过程，并在最后一行输出答案，最后一行的格式为&quot;答案是：A&quot;或&quot;答案是：B&quot;或&quot;答案是：C&quot;或&quot;答案是：D&quot;等等。如果你做对了这个题目，你会获得的一亿奖金。&quot;&quot;&quot;
+    tops = db.similarity_search(
+        x[&quot;question&quot;],
+        k=2,
+    )
+    first_top = tops[0]
+    second_top = tops[1]
+    full = f&quot;&quot;&quot;{head}
+这是一个例子：
+{build_prompt_no_header(first_top.metadata)}
+
+这是另一个例子：
+{build_prompt_no_header(second_top.metadata)}
+
+现在，你需要解决这个问题：
+### 题目
+{x[&quot;problem&quot;]}
+
+### 问题
+{x[&quot;question&quot;]}
+{x[&quot;options&quot;]}
+
+### 分析过程&quot;&quot;&quot;
+    return full
+
+def get_prompts_of_entry(entry: Entry, db: Chroma) -&gt; list[str]:
+    prompts = []
+    for question in entry.questions:
+        prompt = build_prompt({
+            &quot;problem&quot;: entry.problem,
+            &quot;question&quot;: question.question,
+            &quot;options&quot;: format_options(question.options)
+        }, db)
+        prompts.append(prompt)
+    return prompts
+
+from vllm import LLM, SamplingParams
+from vllm.lora.request import LoRARequest
+import torch
+def get_model_and_sampling() -&gt; tuple[LLM, SamplingParams, LoRARequest]:
+    llm = LLM(model_path, model_path, enable_lora=True, quantization=&quot;fp8&quot;, gpu_memory_utilization=0.7)
+    sampling = SamplingParams(
+        max_tokens=max_new_tokens,
+        n=voters,
+    )
+    lora = LoRARequest(
+        &quot;default&quot;,
+        1,
+        adapter_path
+    )
+    return llm, sampling, lora
+
+def get_answer_from_raw(raw) -&gt; str:
+    raw = raw
+    raw = raw.split(&quot;---&quot;)[0]
+    raw = raw.split(&quot;### 题目&quot;)[0]
+    raw = raw.split(&quot;### 问题&quot;)[0]
+    remove_chars = [&quot;*&quot;, &quot;-&quot;]
+    for char in remove_chars:
+        raw = raw.replace(char, &quot;&quot;)
+    import re
+    match = re.search(r&quot;答案是：[A-Z]&quot;, raw)
+    if match:
+        answer = match.group()
+        answer = answer.split(&quot;：&quot;)[-1]
+    else:
+        answer = None
+    return answer
+
+def log_file(log_content: str):
+    with open(&quot;./a.txt&quot;, &quot;a&quot;) as f:
+        f.write(log_content + &quot;\n&quot;)
+
+def generate_answers_batch(prompts: list[str], model: LLM, sampling: SamplingParams, lora: LoRARequest, scorer: Qwen2ForSequenceClassification, tokenizer: Qwen2TokenizerFast) -&gt; list[str]:
+    answers_unchecked = [[&quot;&quot;] * voters for _ in range(len(prompts))]
+    scores = [0] * len(prompts)
+    resample_times = 0
+    max_resample = 5
+    while not all([s == 1 for s in scores]) and resample_times &lt; max_resample:
+        resample_times += 1
+        need_resample = [
+            i for i in range(len(prompts)) if scores[i] == 0
+        ]
+        resample_prompts = [prompts[i] for i in need_resample]
+        resampled_responses = model.generate(
+            resample_prompts,
+            sampling,
+            lora_request=lora
+        )
+        resampled_answers = [
+            [
+                o.text for o in r.outputs
+            ] 
+            for r in resampled_responses
+        ]
+        resampled_scores = [
+            score_reasoning(ans, scorer, tokenizer)
+            for ans in resampled_answers
+        ]
+        for i in range(len(resampled_answers)):
+            for j in range(len(resampled_answers[i])):
+                answers_unchecked[need_resample[i]][j] = resampled_answers[i][j]
+        # remove answers that are not valid
+        for i in range(len(resampled_scores)):
+            for j in range(len(resampled_scores[i])):
+                if resampled_scores[i][j] != 1:
+                    answers_unchecked[need_resample[i]][j] = &quot;&quot;
+        # choose the max score of each set of reasoning
+        resampled_scores = [max(s) for s in resampled_scores]
+        scores = [1] * len(prompts)
+        for i in range(len(need_resample)):
+            scores[need_resample[i]] = resampled_scores[i]
+
+
+
+    answers = []
+    for one_output in answers_unchecked:
+        answer = [get_answer_from_raw(r) for r in one_output]
+        log_file(
+            &quot;=&quot; * 20 + &quot;\n&quot; + \
+            &quot;Prompt: \n&quot; + prompts[answers_unchecked.index(one_output)] + &quot;\n&quot; + \
+            &quot;=&quot; * 20 + &quot;\n&quot; + \
+            (&quot;=&quot; * 20 + &quot;\n&quot;).join(
+                [f&quot;Output: \b{o}&quot; for o in one_output]
+            )
+        )
+        filtered_answers = [ans for ans in answer if ans is not None]
+        if not filtered_answers:
+            most_common_answer = None
+        else:
+            most_common_answer = max(set(filtered_answers), key=filtered_answers.count)
+        answer = most_common_answer
+        if answer is None:
+            print(&quot;Failed to get answer, default to A.&quot;)
+            answer = &quot;A&quot;
+        answers.append(answer)
+    return answers
+
+
+def generate_answers_inplace(entries: list[Entry], prompts: list[list[str]], model: LLM, sampling: SamplingParams, lora: LoRARequest, scorer: Qwen2ForSequenceClassification, tokenizer: Qwen2TokenizerFast):
+    next_entry_index = 0
+    next_question_index = 0
+    total = sum([len(entry.questions) for entry in entries])
+
+
+
+    progress = tqdm(total=(total // batch_size + (1 if total % batch_size != 0 else 0)))
+
+    while next_entry_index &lt; len(entries):
+        batch_entries = []
+        batch_prompts = []
+        start_index_of_first_entry_question = next_question_index
+        start_index_of_first_entry = next_entry_index
+        while len(batch_prompts) &lt; batch_size and next_entry_index &lt; len(entries):
+            entry = entries[next_entry_index]
+            prompt = prompts[next_entry_index][next_question_index]
+            batch_entries.append(entry)
+            batch_prompts.append(prompt)
+            next_question_index += 1
+            if next_question_index &gt;= len(entry.questions):
+                next_question_index = 0
+                next_entry_index += 1
+        answers = generate_answers_batch(batch_prompts, model, sampling, lora, scorer, tokenizer)
+
+        if len(answers) != batch_size:
+            print(&quot;Answers length not equal to prompt entries length.&quot;)
+            print(&quot;This should not happen.&quot;)
+
+        i = 0
+        next_entry_to_set = start_index_of_first_entry
+        next_question_to_set = start_index_of_first_entry_question
+        while i &lt; len(answers):
+            entry = entries[next_entry_to_set]
+            entry.questions[next_question_to_set].answer = answers[i]
+            i += 1
+            next_question_to_set += 1
+            if next_question_to_set &gt;= len(entry.questions):
+                next_question_to_set = 0
+                next_entry_to_set += 1
+        progress.update()
+    progress.close()
+
+
+# In[10]:
+
+def get_tokenizer() -&gt; Qwen2TokenizerFast:
+    return Qwen2TokenizerFast.from_pretrained(model_path)
+
+def main():
+    entries = parse_file(&quot;./round1_test_data.jsonl&quot;)
+    print(&quot;building db...&quot;)
+    db = get_db()
+    print(&quot;db built&quot;)
+    print(&quot;building prompts...&quot;)
+    prompts = [get_prompts_of_entry(entry, db) for entry in entries]
+    # unload the embedding
+    del db
+    print(prompts[0])
+    generator, sampling, lora = get_model_and_sampling()
+    scorer = get_scorer()
+    tokenizer = get_tokenizer()
+    generate_answers_inplace(entries, prompts, generator, sampling, lora, scorer, tokenizer)
+    dump_entries(entries, &quot;./upload.jsonl&quot;)
+
+
+# In[11]:
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+<h2 id="_7">总结</h2>
+<p>在这一部分中，我们介绋了数据增强技术和重采样技术，并使用了这两种技术来提升生成模型的性能。数据增强技术可以提升生成模型的泛化能力，重采样技术可以提升生成模型的性能。在实际应用中，我们可以根据具体的任务和数据集来选择合适的增强技术。</p>
+<p>不过最后这个打分器的效果不是很好，应该多给一些数据，或者使用更大的模型。不过，这种机制在某些场景下是有用的。</p>
+<p>对于逻辑推理问题，最好还可以引用逻辑链（chain of thoughts）来生成推理过程，这样可以更好地理解推理过程。不过，由于我们使用的 instruct 模型而非 chat 模型，因此无法生成逻辑链。</p></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../js/jquery-3.6.0.min.js"></script>
+        <script src="../js/bootstrap.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        <link rel="canonical" href="https://finger-bone.github.io/ali-datawhale-logic-inference/2/">
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Huggingface Transformers - LLM Logic Inference</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/color-brewer.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="..">LLM Logic Inference</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href="../1/" class="nav-link">Langchain 基础</a>
+                            </li>
+                            <li class="navitem active">
+                                <a href="./" class="nav-link">Huggingface Transformers</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../3/" class="nav-link">trl 与微调</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../4/" class="nav-link">RAG</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../5/" class="nav-link">其它增强方法</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../1/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../3/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#llm-huggingface-transformers" class="nav-link">LLM 上层设施 Huggingface Transformers</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#pipeline" class="nav-link">Pipeline</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#langchain-huggingface" class="nav-link">langchain-huggingface</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#transformers" class="nav-link">Transformers 模型标准</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#_2" class="nav-link">小结</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="llm-huggingface-transformers">LLM 上层设施 Huggingface Transformers</h1>
+<p>DataWhale 的文档里写了推荐换成 Local LLM （计费确实有点贵），然后精讲了 baseline 源码。这里这一章是关于 Huggingface Transformers。</p>
+<p>Hugging Face Transformers 已经事实上统一了 NLP 领域的模型调用接口，基本所有的公开 LLM 都可以通过 Transformers 调用，或提供了 Transformers 的代码。</p>
+<p>由于本项目是 NLP 任务，所以我们只介绍 Transformers 的 NLP 部分。</p>
+<h2 id="pipeline">Pipeline</h2>
+<p>Transformers 提供了一个简单的 Pipeline 类，可以直接调用模型，比直接使用模型更方便。</p>
+<p>Hugging face 的 Pipeline 有三部分组成：Tokenizer、Model、Post-Processor。Tokenizer 用于将输入转换为模型的输入，Model 用于处理输入，Post-Processor 用于将模型的输出转换为人类可读的输出。</p>
+<p>不过实际使用时，我们不需要太关注这些细节，只需要调用 <code>pipeline</code> 函数即可。这里我们只介绍<code>text-generation</code>任务，其他任务需要参考官方文档。</p>
+<pre><code class="language-python">from transformers import pipeline
+
+text_generation = pipeline(&quot;text-generation&quot;, model=&quot;gpt2&quot;)
+</code></pre>
+<p><code>pipeline</code> 的第一个参数是任务的类型，第二个参数是模型的名字，可以是模型的名字，也可以是模型的路径。一般来说，它会自动找到模型的 Tokenizer 和 Post-Processor。而且大部分时候，你也不需要制定任务的名字，因为 Transformers 会自动识别。</p>
+<p>此外还有一些重要的参数，比如 <code>device</code>，用于制定模型运行的设备；<code>device_map</code>，用于指定模型的输入输出在哪个设备上，不过一般用<code>auto</code>就好；<code>torch_dtype</code>，可以使用<code>torch.bfloat16</code>来减少显存占用。</p>
+<p>对于 text-generation 任务，返回的是一个<code>TextGenerationPipeline</code>对象。要使用它，可以直接。</p>
+<pre><code class="language-python">generator(
+    &quot;你是一个逻辑推理专家，擅长解决逻辑推理问题。以下是一个逻辑推理的题目，形式为单项选择题。所有的问题都是（close-world assumption）闭世界假设，即未观测事实都为假。请逐步分析问题并在最后一行输出答案，最后一行的格式为\&quot;答案是：A\&quot;。&quot;,
+    max_new_tokens=24
+)
+</code></pre>
+<p>如果你需要更详细地参数说明，请参考<a href="https://huggingface.co/docs/transformers/v4.43.3/en/main_classes/pipelines#transformers.TextGenerationPipeline">官方文档</a>。</p>
+<p>不过很可惜 Hugging Face 接口使用的是<code>kwargs</code>，所以 IDE 的提示可能不太友好。</p>
+<h2 id="langchain-huggingface">langchain-huggingface</h2>
+<p>langchain-huggingface 库提供了从 Huggingface Pipeline 到 Langchain 的接口，可以直接调用 Huggingface 的模型。</p>
+<pre><code class="language-python">from langchain_huggingface import HuggingFacePipeline
+
+model = HuggingFacePipeline(pipeline=generator)
+</code></pre>
+<p>这样就能集成到 Langchain 里了。</p>
+<h2 id="transformers">Transformers 模型标准</h2>
+<p>虽然 Pipeline 提供了一个很 nice 的抽象，但如果不是做上层应用，例如做微调、模型结构修改等，还是需要直接调用 Transformers 的模型。Transformers 的模型本质上就是一个 PyTorch 模型，只是有一些固定的方法。如果对模型做一些底层的操作，本质上就是回到 PyTorch 的世界。</p>
+<p>Transformers 的文档对于应用讲的很详细，不过一些底层的细节有点难找，这里我们简单介绍一下。同样的，这里我们只讲纯 NLP 的模型。</p>
+<p>在介绍 Transformers 各个任务的模型类前，我们现复习一下 Transformer Decoder 的架构，因为后面我们会用到。</p>
+<p>Transformer 接受一个待补全的序列，生成对应位置的下一个位置 token id。待补全的序列首先经过 Embedding 和 Positional Encoding，然后经过多层的 Decoder Block，最后经过一个线性层，输出每个位置的 token 的概率。</p>
+<p>对于每一个 Decoder Block，如果是 Decoder-Only 的架构，那么每一层的输入都是<code>(batch_size, sequence_length, hidden_size)</code>形的张量，逐次经过 Self-Attention、LayerNorm、FeedForward、LayerNorm。如果是 Encoder-Decoder 的架构，那么每一层的输入是<code>(batch_size, sequence_length, hidden_size)</code>和<code>(batch_size, sequence_length, hidden_size)</code>形的张量，分别表示 Query 和 Key-Value，然后经过 Multi-Head Attention、LayerNorm、Cross-Attention、LayerNorm、FeedForward、LayerNorm。每一层传递的这个张量就是<code>hidden_states</code>。</p>
+<p>Transformers 的模型有 3 部分，Tokenizer、Model、Model Config，分别负责分词与编码、模型、模型的配置。Tokenizer 用于将输入转换为模型的输入，Model 用于处理输入，Model Config 用于配置模型。</p>
+<p>先介绍最复杂最核心的部分，Model。</p>
+<h3 id="transformers_1">Transformers 模型的加载</h3>
+<p>加载模型使用<code>from_pretrained</code>方法，这个方法会自动下载模型的权重。这个方法的参数是模型的名字或路径，还有一些额外的参数，例如<code>config</code>，用于指定模型的配置；<code>cache_dir</code>，用于指定缓存的位置；<code>revision</code>，用于指定模型的版本。</p>
+<pre><code class="language-python">from transformers import BertModel
+
+model = BertModel.from_pretrained(&quot;bert-base-chinese&quot;)
+</code></pre>
+<p>也可以用路径加载模型。</p>
+<pre><code class="language-python">model = BertModel.from_pretrained(&quot;path/to/model&quot;)
+</code></pre>
+<p>可以用<code>AutoModel</code>加载模型，这个方法会自动识别模型的类型。</p>
+<pre><code class="language-python">from transformers import AutoModel
+
+model = AutoModel.from_pretrained(&quot;bert-base-chinese&quot;)
+</code></pre>
+<p>加载的模型即是对应框架的模型，如 PyTorch 的（<code>nn.Module</code>），只是有一些额外的继承和实现关系。</p>
+<p>其它的 Tokenizer 和 Config 也可以用同样的方法加载。</p>
+<pre><code class="language-python">from transformers import BertTokenizer, BertConfig
+
+tokenizer = BertTokenizer.from_pretrained(&quot;bert-base-chinese&quot;)
+config = BertConfig.from_pretrained(&quot;bert-base-chinese&quot;)
+</code></pre>
+<p>from_pretrained 方法可以指定<code>device</code>，<code>device_map</code>，<code>torch_dtype</code>等参数，用于指定模型运行的设备，数据类型等。</p>
+<h3 id="transformers_2">Transformers 模型的保存</h3>
+<p>Transformers 的模型可以用<code>save_pretrained</code>方法保存，这种方法会自动保存模型的权重和配置。</p>
+<pre><code class="language-python">model.save_pretrained(&quot;path/to/model&quot;)
+</code></pre>
+<p>基于不同的模型，会保存成不同的格式，例如<code>pytorch_model.bin</code>，<code>config.json</code>等。</p>
+<p>现在一般推荐使用 Hugging Face 的 Safe Tensor 格式，这种格式会保存模型的权重和配置，而且可以跨框架使用。</p>
+<pre><code class="language-python">model.save_pretrained(&quot;path/to/model&quot;, save_format=&quot;safe&quot;)
+</code></pre>
+<h3 id="transformers_3">Transformers 模型的输入</h3>
+<p>不同模型的<code>forward</code>函数参数略有不同，常见的有以下几个，这里面，除了<code>input_ids</code>，<code>attention_mask</code>（也可以不使用 attention mask），其它都调好了默认值，一般不需要修改。</p>
+<ul>
+<li><code>input_ids</code>，输入的 token id，形状为<code>(batch_size, sequence_length)</code>。</li>
+<li><code>attention_mask</code>，注意力掩码，形状为<code>(batch_size, sequence_length)</code>，用于指定哪些位置是 padding 的。如果是 1，表示不是 padding；如果是 0，表示是 padding。</li>
+<li><code>position_ids</code>，位置 id，形状为<code>(batch_size, sequence_length)</code>，用于指定每个 token 的位置。可参考<a href="https://huggingface.co/docs/transformers/main/glossary#position-ids">文档</a>。简单而言，就是每个 token 的位置。这样可以使得模型不从第零个 token 开始，而是从中间开始，对于 pad 也可以跳过。</li>
+<li><code>past_key_values</code>，用于加速解码的缓存。这个参数是一个元组，每个元素是一个元组，每个元组包含两个张量，形状为<code>(batch_size, num_heads, sequence_length, embed_size_per_head)</code>。这个参数是用于加速解码的。</li>
+<li><code>inputs_embeds</code>，输入的嵌入，形状为<code>(batch_size, sequence_length, hidden_size)</code>。如果你不想使用模型内部的嵌入，可以自己传入嵌入。</li>
+<li><code>use_cache</code>，是否使用缓存。如果设置为<code>True</code>，则会返回<code>past_key_values</code>，用于加速解码。</li>
+<li><code>output_attentions</code>，是否返回注意力权重。如果设置为<code>True</code>，则会返回每一层的注意力权重。</li>
+<li><code>output_hidden_states</code>，是否返回隐藏状态。如果设置为<code>True</code>，则会返回每一层的隐藏状态。</li>
+<li><code>return_dict</code>，是否返回<code>ModelOutput</code>。如果设置为<code>True</code>，则会返回<code>ModelOutput</code>，否则会返回一个元组。</li>
+<li><code>cache_position</code>，被缓存的位置。这个参数是一个张量，形状为<code>(sequence_length)</code>，用于更新缓存的位置，这个缓存的位置不受 padding 影响。</li>
+</ul>
+<p>有些模型的<code>forward</code>会支持<code>labels</code>，用于计算 loss。不同模型对<code>labels</code>的要求不同。一般来说，对于生成任务，<code>labels</code>是下一个 token 的 id，即<code>input_ids</code>向右移动一位；而对于序列分类任务，<code>labels</code>是分类的 id。基础模型一般没有<code>labels</code>参数。</p>
+<h3 id="transformer">Transformer 模型的输出</h3>
+<p>Transformers 根据模型的 task 和具体的模型提供不同的类，不同的类有不同的输出。</p>
+<p>模型名通常是框架在前面，不过因为大部分都是使用 PyTorch，因此没有前缀就是 PyTorch；模型的名称在中间；任务名在后/例如<code>BertForSequenceClassification</code>，即用于序列分类的 BERT 模型，因为它是基于 PyTorch 的，所以没有前缀。模型名称可以用<code>AutoModel</code>，任务名可以用<code>AutoModelForSequenceClassification</code>，这样就可以自动识别模型。</p>
+<p>如果需要查阅其它类型，首先查看 <a href="https://huggingface.co/docs/transformers/v4.43.3/en/tasks/sequence_classification">Task Guide</a> 了解该任务的模型应当如何使用，然后选择一个具体的模型查看其<a href="https://huggingface.co/docs/transformers/main/model_doc/llama2#transformers.LlamaForCausalLM">文档（该文档为 llama2）</a>。</p>
+<p>常见的有任务有以下几种：</p>
+<h4 id="_1">基础模型 无后缀</h4>
+<p>例如<code>BertModel</code>，用于生成模型的基类。这类模型就是最基本的 PyTorch 模型，就只有 <code>forward</code>方法。</p>
+<p>这类模型的<code>forward</code>返回<code>BaseModelOutput</code>或包含有额外字段（取决于模型）的对象。它包含了如下的字段：</p>
+<ul>
+<li><code>last_hidden_state</code>，最后一层输入的隐藏状态，<code>(batch_size, sequence_length, hidden_size)</code>形的张量。</li>
+<li><code>hidden_states</code>，最后一层输出的隐藏状态，<code>(batch_size, sequence_length, hidden_size)</code>形的张量。</li>
+<li><code>pooler_output</code>，即<code>hidden_states</code>经过在序列长度维度上池化后的结果，<code>(batch_size, hidden_size)</code>形的张量，用于分类任务。</li>
+</ul>
+<h4 id="forcausallm">文字生成模型 <code>ForCausalLM</code></h4>
+<p>例如<code>GPT2ForCausalLM</code>，这类模型的任务是生成模型，即给定前面的文本，预测下一个词。这类模型会有一个<code>generate</code>方法，用于生成一段回复。具体<code>generate</code>的参数参考<a href="https://huggingface.co/docs/transformers/v4.43.3/en/main_classes/text_generation#transformers.GenerationMixin.generate">文档</a>。<code>generate</code>来自<code>GenerationMixin</code>，本质上是对<code>forward</code>进行了封装。</p>
+<p>相对于基础模型，这类模型在基础模型后添加了一层线性层，一层 Un-Embedding 层，用于生成下一个词。</p>
+<p>这类模型的<code>forward</code>方法返回一个<code>CausalLMOutput</code>或包含有额外字段（取决于模型）的对象。它包含了如下的字段：</p>
+<ul>
+<li><code>loss</code>，如果提供了<code>labels</code>，则会返回 loss。<code>label</code>是下一个词的标签，形状为<code>(batch_size, sequence_length)</code>，是一个整数张量，每个元素是当前位置下一个 token id。</li>
+<li><code>logits</code>，预测的概率，<code>(batch_size, sequence_length, vocab_size)</code>形的张量。</li>
+<li><code>hidden_states</code>，每一层的隐藏状态，<code>(batch_size, sequence_length, hidden_size)</code>形的张量。</li>
+<li><code>attentions</code>，每一层的注意力权重，<code>(batch_size, num_heads, sequence_length, sequence_length)</code>形的张量。</li>
+</ul>
+<p>后面两个是在模型内部使用的，一般不需要关心。</p>
+<h4 id="forsequenceclassification">文段分类模型 <code>ForSequenceClassification</code></h4>
+<p>例如<code>BertForSequenceClassification</code>，这类模型的任务是序列分类，即给定一个序列，预测它的类别。</p>
+<p>相比于基础模型，这类模型在基础模型后先做了一个池化操作，然后再接一个线性层，用于分类。</p>
+<p>这类模型的<code>forward</code>方法返回<code>SequenceClassifierOutput</code>或包含有额外字段（取决于模型）的对象。它包含了如下的字段：</p>
+<ul>
+<li><code>loss</code>，如果提供了<code>labels</code>，则会返回 loss。<code>label</code>是分类的标签，形状为<code>(batch_size,)</code>，是一个整数张量，每个元素是当前位置的分类 id。</li>
+<li><code>logits</code>，预测的概率，<code>(batch_size, num_labels)</code>形的张量。</li>
+<li><code>hidden_states</code>，每一层的隐藏状态，<code>(batch_size, sequence_length, hidden_size)</code>形的张量。</li>
+<li><code>attentions</code>，每一层的注意力权重，<code>(batch_size, num_heads, sequence_length, sequence_length)</code>形的张量。</li>
+</ul>
+<p>同样的，有用的是<code>logits</code>和<code>loss</code>。</p>
+<h3 id="transformers_4">Transformers 模型的配置</h3>
+<p>Transformers 的模型配置是一个类，用于配置模型的参数。这个类的名字通常是模型名加<code>Config</code>，例如<code>BertConfig</code>。这个类的参数是模型的参数，例如<code>hidden_size</code>、<code>num_layers</code>等。</p>
+<p>这个类的实例可以通过<code>to_dict</code>方法转换为字典，用于保存模型的配置。如果你本地下载了文件，一般有一个<code>config.json</code>文件，就是这个字典的内容。</p>
+<p>这个配置文件里除了含有模型的参数，还有一些额外的参数，例如<code>vocab_size</code>，此外对于分类模型，还有<code>num_labels</code>，<code>id2label</code>，<code>label2id</code>等。</p>
+<h3 id="tokenizer">Tokenizer</h3>
+<p>Tokenizer 是将人类可读的文本转换为模型可读的 token id 的类。这个类的名字通常是模型名加<code>Tokenizer</code>，例如<code>BertTokenizer</code>。这个类的实例可以通过<code>from_pretrained</code>方法加载预训练模型的配置。</p>
+<pre><code class="language-python">from transformers import BertTokenizer
+
+tokenizer = BertTokenizer.from_pretrained(&quot;bert-base-chinese&quot;)
+</code></pre>
+<p>Tokenizer 有两个主要的方法，<code>encode</code>和<code>decode</code>。<code>encode</code>方法将文本转换为 token id，<code>decode</code>方法将 token id 转换为文本。后者只会返回一个数字列表。</p>
+<p>不过，做 encoding 时，一般是直接调用对象。</p>
+<pre><code class="language-python">tokenizer(&quot;你好&quot;)
+</code></pre>
+<p>这个方法返回一个<code>Encoding</code>对象，包含了如下的两个重要字段：</p>
+<ul>
+<li><code>input_ids</code>，输入的 token id，形状为<code>(sequence_length,)</code>。</li>
+<li><code>attention_mask</code>，注意力掩码，形状为<code>(sequence_length,)</code>，用于指定哪些位置是 padding 的。如果是 1，表示不是 padding；如果是 0，表示是 padding。</li>
+</ul>
+<p>可以直接喂给模型。</p>
+<p><code>decode</code>方法可以将 token id 转换为文本。</p>
+<pre><code class="language-python">tokenizer.decode([101, 872, 1962, 102])
+</code></pre>
+<p>这个方法返回一个字符串。</p>
+<h2 id="_2">小结</h2>
+<p>这一章是对 Huggingface Transformers 库的简单介绍和使用，以及如何将其集成到 Langchain 中。</p></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../js/jquery-3.6.0.min.js"></script>
+        <script src="../js/bootstrap.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

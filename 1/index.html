@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        <link rel="canonical" href="https://finger-bone.github.io/ali-datawhale-logic-inference/1/">
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Langchain 基础 - LLM Logic Inference</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/color-brewer.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="..">LLM Logic Inference</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem active">
+                                <a href="./" class="nav-link">Langchain 基础</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../2/" class="nav-link">Huggingface Transformers</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../3/" class="nav-link">trl 与微调</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../4/" class="nav-link">RAG</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../5/" class="nav-link">其它增强方法</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" class="nav-link disabled">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../2/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#llm-langchain-baseline" class="nav-link">LLM 上层设施 基于 Langchain 复现 Baseline</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#openai-chat-api-request-body" class="nav-link">OpenAI Chat API Request Body</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#openai-chat-api-response-body" class="nav-link">OpenAI Chat API Response Body</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#langchain" class="nav-link">Langchain 基础使用</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="llm-langchain-baseline">LLM 上层设施 基于 Langchain 复现 Baseline</h1>
+<p>Baseline的代码是一个简单的补全解法，没有太多新东西，那来复习下 Langchain 调 API 吧。现在已经是 LCEL(LangChain Expression Language) 的时代了，就只用新写法了。</p>
+<p>先从基础的 API 讲起。</p>
+<p>OpenAI API 的标准是日前大部分模型服务商都在遵循的，这里我们就以OpenAI Chat API为例来讲解。本次代码中，dashscope 也提供的是OpenAI Chat API风格的接口。</p>
+<h2 id="openai-chat-api-request-body">OpenAI Chat API Request Body</h2>
+<p>OpenAI 官方的接口 Endpoint 是 <code>POST https://api.openai.com/v1/chat/completions</code>，带有认证头 <code>Authorization</code> ，认证头是 <code>Bearer</code> 格式，token是 API Key。</p>
+<p>下文中是所有的字段，但是常用的只有 <code>messages</code> 和 <code>model</code>，其次是生成参数。回复常用的也只有 <code>choices</code>。</p>
+<h3 id="messages-arraymessage-required">messages <code>Array&lt;Message&gt;</code> Required</h3>
+<p>Messages 字段是一个数组，每个元素是一个 message 对象。</p>
+<p>Message 对象有 4 种，分别是 <code>System</code>, <code>User</code>, <code>Assistant</code>, <code>Tool</code>。<code>Function</code> 类 message 已经被废弃。</p>
+<h4 id="system-message-message"><code>System Message: Message</code></h4>
+<p>系统消息是由系统生成的消息，不需要用户提供。一般用于基本的 prompt 工程。</p>
+<ul>
+<li><code>role</code>: 总是 <code>system</code>，Required</li>
+<li><code>content</code>: 系统消息内容，Required</li>
+<li><code>name</code>: 参与者的名字，Optional</li>
+</ul>
+<p>这里的参与者名字是指这个消息的来源，用于在多用户的情况下区分不同用户的消息，它不太常用。</p>
+<p>例如，一个系统消息可以是：</p>
+<pre><code class="language-json">{
+  &quot;role&quot;: &quot;system&quot;,
+  &quot;content&quot;: &quot;Hello, how can I help you?&quot;,
+  &quot;name&quot;: &quot;developer&quot;
+}
+</code></pre>
+<h4 id="user-message-message"><code>User Message: Message</code></h4>
+<p>用户消息是由用户提供的消息，需要用户提供。一般用于用户输入。</p>
+<ul>
+<li><code>role</code>: 总是 <code>user</code>，Required</li>
+<li><code>content</code>: 用户消息内容，Required</li>
+<li><code>name</code>: 参与者的名字，Optional</li>
+</ul>
+<p>与系统消息唯一的区别是 <code>role</code> 字段。</p>
+<p>例如，一个用户消息可以是：</p>
+<pre><code class="language-json">{
+  &quot;role&quot;: &quot;user&quot;,
+  &quot;content&quot;: &quot;What's the weather like today?&quot;,
+  &quot;name&quot;: &quot;Alice&quot;
+}
+</code></pre>
+<h4 id="assistant-message-message"><code>Assistant Message: Message</code></h4>
+<p>助手消息是由助手生成的消息，不需要用户提供。一般用于助手回复。</p>
+<p>助手是指的语言模型能调用的其它一些工具，例如知识库、搜索引擎等。</p>
+<ul>
+<li><code>role</code>: 总是 <code>assistant</code>，Required</li>
+<li><code>content</code>: 助手消息内容，Optional，因为有 tool calls 作为 <code>content</code> 的实际内容。如果 tool calls 为空，则 content 必须提供。</li>
+<li>
+<p><code>tool_calls</code>: 函数调用，它也是一个列表，每个对象包含如下的字段，Optional，但如果 content 为空，则 tool calls 必须提供。</p>
+<ul>
+<li><code>name</code>: 函数名，Required</li>
+<li><code>arguments</code>: 函数参数，是一个对象，Required</li>
+<li><code>id</code>: 函数调用的唯一标识，Required</li>
+</ul>
+</li>
+</ul>
+<p>例如，一个助手消息可以是：</p>
+<pre><code class="language-json">{
+    &quot;role&quot;: &quot;assistant&quot;,
+    &quot;name&quot;: &quot;AssistantBot&quot;,
+    &quot;tool_calls&quot;: [
+        {
+            &quot;id&quot;: &quot;123456&quot;,
+            &quot;type&quot;: &quot;function&quot;,
+            &quot;function&quot;: {
+                &quot;name&quot;: &quot;get_weather&quot;,
+                &quot;arguments&quot;: {
+                    &quot;location&quot;: &quot;New York&quot;
+                }
+            }
+        }
+    ]
+}
+</code></pre>
+<h4 id="tool-message-message"><code>Tool Message: Message</code></h4>
+<p>工具消息是助手消息的返回结果。</p>
+<ul>
+<li><code>role</code>: 总是 <code>tool</code>，Required</li>
+<li><code>content</code>: 工具消息内容，Required</li>
+<li><code>tool_call_id</code>: 对应的助手消息的 <code>tool_call</code> 的 <code>id</code>，Required</li>
+</ul>
+<p>例如，一个工具消息可以是：</p>
+<pre><code class="language-json">{
+    &quot;role&quot;: &quot;tool&quot;,
+    &quot;content&quot;: &quot;Sunny&quot;,
+    &quot;tool_call_id&quot;: &quot;123456&quot;
+}
+</code></pre>
+<h3 id="model-string-required">model <code>String</code> Required</h3>
+<p>模型名称，例如 <code>gpt-4o</code>。</p>
+<h3 id="frequency_penalty-float-optional">frequency_penalty <code>Float</code> Optional</h3>
+<p>默认是 0，取值在 -2 到 2 之间。正值会给重复的词语更高的惩罚。</p>
+<h3 id="logit_bias-mapinteger-float-optional">logit_bias <code>Map&lt;Integer, Float&gt;</code> Optional</h3>
+<p>默认是空，是一个整数到浮点数的映射。整数是 token 的索引，浮点数是对应的 logit 偏置。</p>
+<h3 id="logprobs-boolean-optional">logprobs <code>Boolean</code> Optional</h3>
+<p>默认为 <code>false</code>。如果为 <code>true</code>，返回的结果会包含 logprobs 字段，这个字段包含了每个 token 的 logprobs。</p>
+<h3 id="max_tokens-integer-optional">max_tokens <code>Integer</code> Optional</h3>
+<p>返回的结果最多包含的 token 数。</p>
+<h3 id="n-integer-optional">n <code>Integer</code> Optional</h3>
+<p>返回得到的结果的数量，默认为 1。</p>
+<h3 id="presence_penalty-float-optional">presence_penalty <code>Float</code> Optional</h3>
+<p>默认是 0，取值在 -2 到 2 之间。正值会给出现的词语更高的惩罚。</p>
+<p>具体 presence_penalty 和 frequency_penalty 的区别可以参考 <a href="https://platform.openai.com/docs/advanced-usage/parameter-details">OpenAI 文档</a>。</p>
+<h3 id="response_format-object-optional">response_format <code>Object</code> Optional</h3>
+<p>必须是 <code>{ "type": "json" }</code> 或 <code>{ "type": "text" }</code>。默认为后者。使用 <code>json</code> 会强制模型返回一个 <code>json</code> 格式的 <code>message</code>，使用 <code>text</code> 会返回一个文本格式的结果。</p>
+<h3 id="seed-integer-optional">seed <code>Integer</code> Optional</h3>
+<p>随机种子，无需解释。</p>
+<h3 id="service_tire-string-optional">service_tire <code>String</code> Optional</h3>
+<p>服务等级可用<code>default</code>和<code>auto</code>，默认为<code>auto</code>。</p>
+<p>如果设置了服务等级，返回结果也会包含服务等级的字段。</p>
+<h3 id="stop-arraystring-string-optional">stop <code>Array&lt;String&gt; | String</code> Optional</h3>
+<p>停止词，如果返回结果中包含了停止词，会提前结束。</p>
+<h3 id="stream-boolean-optional">stream <code>Boolean</code> Optional</h3>
+<p>如果为 <code>true</code>，会使用流模式返回。</p>
+<h3 id="stream_options-object-optional">stream_options <code>Object</code> Optional</h3>
+<p>只有一个字段，<code>include_usage</code>，如果为 <code>true</code>，返回时会包含一个 <code>usage</code> 字段。</p>
+<p>对于其它的所有对象，<code>usage</code> 都是空。在 <code>[DONE]</code> 信息被返回前，会多发一个对象。这个对象的返回信息是空，但是 <code>usage</code> 字段会包含一些信息。</p>
+<h3 id="temperature-float-optional">temperature <code>Float</code> Optional</h3>
+<p>默认是 1，取在 0 到 2 之间。</p>
+<h3 id="top_p-float-optional">top_p <code>Float</code> Optional</h3>
+<p>默认是 1，取在 0 到 1 之间。</p>
+<h3 id="tools-arraytool-optional">tools <code>Array&lt;Tool&gt;</code> Optional</h3>
+<p>支持的工具列表，每个工具是一个对象。</p>
+<p>工具对象包含如下字段：</p>
+<ul>
+<li><code>type</code>: 工具类型，目前只支持 <code>function</code>，Required。</li>
+<li>
+<p><code>function</code>: 函数对象，Required。</p>
+<ul>
+<li><code>description</code>: 函数描述，Optional。</li>
+<li><code>name</code>: 函数名，Required。</li>
+<li>
+<p><code>parameters</code>: 函数参数，是一个对象，Optional。如果函数没有参数，可以为空对象。</p>
+<ul>
+<li><code>name</code>: 参数名，Required。</li>
+<li><code>type</code>: 参数类型，Required。</li>
+<li><code>description</code>: 参数描述，Optional。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="tool_choice-string-object-optional">tool_choice <code>String | Object</code> Optional</h3>
+<p>控制模型可用的工具。如果是字符串，可以为 <code>none</code>，禁止所有工具，<code>auto</code>，自动选择工具，<code>required</code>，必须使用工具。</p>
+<p>使用对象时，每个对象都模型必须使用的工具。</p>
+<ul>
+<li><code>type</code>: 工具类型，目前只支持 <code>function</code>，Required。</li>
+<li>
+<p><code>function</code>: 函数对象，Required。</p>
+<ul>
+<li><code>name</code>: 函数名，Required。</li>
+</ul>
+</li>
+</ul>
+<h3 id="parallel_tool_calls-boolean-optional">parallel_tool_calls <code>Boolean</code> Optional</h3>
+<p>使用并行工具调用。</p>
+<h3 id="user-string-optional">user <code>String</code> Optional</h3>
+<p>用户 ID。</p>
+<h2 id="openai-chat-api-response-body">OpenAI Chat API Response Body</h2>
+<p>返回对象有两种，<code>chat completion object</code>和<code>chat completion chunk object</code>。</p>
+<h3 id="chat-completion-object">Chat Completion Object</h3>
+<ul>
+<li><code>id</code>: 请求的唯一标识。</li>
+<li><code>created</code>: 请求的时间，Unix 秒时间戳。</li>
+<li><code>model</code>: 模型名称。</li>
+<li><code>service_tier</code>: 服务等级。</li>
+<li><code>system_fingerprint</code>: 系统指纹，代表了调用时的系统环境。</li>
+<li><code>object</code>: 返回对象的名称，总是<code>chat.chat.completion</code>。</li>
+<li>
+<p><code>usage</code>: 包含一些计费信息。</p>
+<ul>
+<li><code>total_tokens</code>: 总 token 数。</li>
+<li><code>prompt_tokens</code>: prompt 的 token 数。</li>
+<li><code>completion_tokens</code>: 返回的 token 数。</li>
+</ul>
+</li>
+<li>
+<p><code>choices</code>: 返回的结果，是一个数组。</p>
+<ul>
+<li><code>finish_reason</code>: 结束原因，有 <code>stop</code>，碰到停止词，<code>length</code>，达到最大 token 数，<code>content_filter</code>，被 censor 了，<code>tool_calls</code>，模型请求了工具。</li>
+<li><code>index</code>: 结果的索引。</li>
+<li><code>logprobs</code>: logprobs 字段。</li>
+<li>
+<p><code>message</code>: 消息对象。</p>
+<ul>
+<li><code>content</code>: 消息内容。</li>
+<li><code>role</code>: 消息角色。</li>
+<li>
+<p><code>tool_calls</code>: 工具调用。</p>
+<ul>
+<li><code>id</code>: 工具调用的唯一标识。</li>
+<li><code>type</code>: 工具类型。</li>
+<li>
+<p><code>function</code>: 函数对象。</p>
+<ul>
+<li><code>name</code>: 函数名。</li>
+<li><code>arguments</code>: 函数参数。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="chat-completion-chunk-object">Chat Completion Chunk Object</h3>
+<p>如果是流模式，会返回多个 <code>chat completion chunk object</code>，最后会返回一个 <code>[DONE]</code> 作为结束标志。</p>
+<ul>
+<li><code>id</code>: 请求的唯一标识。</li>
+<li><code>created</code>: 请求的时间，Unix 秒时间戳。</li>
+<li><code>model</code>: 模型名称。</li>
+<li><code>service_tier</code>: 服务等级。</li>
+<li><code>system_fingerprint</code>: 系统指纹，代表了调用时的系统环境。</li>
+<li><code>object</code>: 返回对象的名称，总是<code>chat.chat.completion.chunk</code>。</li>
+<li><code>usage</code>: 同上。</li>
+<li><code>choices</code>: 同上。</li>
+</ul>
+<h2 id="langchain">Langchain 基础使用</h2>
+<p>Langchain 如今的基础是 LCEL，基本思想是管线化，即把每个组件变成一个管线，然后把管线串联起来。因为 python 没有自定义符号，所以使用<code>|</code>来表示管线，这也是 unix 管道的符号。</p>
+<p>管线连接的方法是<code>invoke</code>，即上一个管线的<code>invoke</code>输出是下一个管线<code>invoke</code>的输入。</p>
+<p>本文只需要一个简单的模型补全，因此我们的管线是 <code>prompt_template | model | parser</code>。</p>
+<h3 id="prompt-template">Prompt Template</h3>
+<p>对话补全使用<code>from langchain_core.prompts.ChatPromptTemplate</code>。</p>
+<p>创建对话模版使用<code>from_messages</code>构造器，它接受一个元组列表，元组的第一个元素是消息的角色，第二个元素是消息的内容。</p>
+<p>Langchain 使用简单的 f-string 模版，因此变量用<code>{}</code>包裹。</p>
+<p>例如：</p>
+<pre><code class="language-python">from langchain_core.prompts import ChatPromptTemplate
+
+prompt = ChatPromptTemplate.from_messages([
+    (&quot;system&quot;, &quot;Hello, how can I help you?&quot;),
+    (&quot;user&quot;, &quot;{problem}&quot;)
+])
+
+input_str = prompt.invoke({&quot;problem&quot;: &quot;What's the weather like today?&quot;})
+</code></pre>
+<p>这里我们使用这样一个模版：</p>
+<pre><code class="language-python">prompt = ChatPromptTemplate.from_messages([
+    (&quot;system&quot;, '你是一个逻辑推理专家，擅长解决逻辑推理问题。以下是一个逻辑推理的题目，形式为单项选择题。所有的问题都是（close-world assumption）闭世界假设，即未观测事实都为假。请逐步分析问题并在最后一行输出答案，最后一行的格式为&quot;答案是：A&quot;。'),
+    (&quot;user&quot;, &quot;&quot;&quot;### 题目:
+{problem}
+
+### 问题:
+{question}
+{options}&quot;&quot;&quot;)
+])
+</code></pre>
+<h3 id="model">Model</h3>
+<p>Langchain 直接支持 Dashscope，因此我们可以直接使用 Dashscope 的模型。</p>
+<pre><code class="language-python">from langchain_community.llms import Tongyi
+
+model = Tongyi()
+</code></pre>
+<p>需要在环境变量中设置<code>DASHSCOPE_API_KEY</code>。</p>
+<h3 id="parser">Parser</h3>
+<p>直接使用一个<code>StrOutputParser</code>。</p>
+<pre><code class="language-python">from langchain_core.output_parsers import StrOutputParser
+
+parser = StrOutputParser()
+</code></pre>
+<h3 id="_1">管线串联</h3>
+<pre><code class="language-python">chain = prompt | model | parser
+</code></pre>
+<p>然后这样调用即可：</p>
+<pre><code class="language-python">def format_options(options):
+    return '\n'.join(
+        [
+            f'{chr(ord(&quot;A&quot;) + i)}: {option}'
+            for i, option in enumerate(options)
+        ]
+    )
+
+res = chain.invoke({
+    &quot;problem&quot;: &quot;有一个列表，找出该列表的最后一个元素。\n\n下列选项中哪个是列表 `[a, b, c, d]` 的最后一个元素？&quot;,
+    &quot;question&quot;: &quot;选择题 1：&quot;,
+    &quot;options&quot;: format_options([&quot;a&quot;, &quot;b&quot;, &quot;c&quot;, &quot;d&quot;])
+})
+</code></pre>
+<p>这样就完成了一个简单的补全。</p>
+<p>处理下数据即可复现baseline。</p></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../js/jquery-3.6.0.min.js"></script>
+        <script src="../js/bootstrap.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>
