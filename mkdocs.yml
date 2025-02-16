@@ -1,0 +1,24 @@
+site_name: LLM Logic Inference
+site_url: https://finger-bone.github.io/ali-datawhale-logic-inference/
+site_description: A tutorial on LLM application in the case of LLM logic inference
+
+theme:
+  name: lux
+  font:
+    text: Inter
+    code: Fira Code
+
+docs_dir: notes
+
+nav:
+- Langchain 基础: 1.md
+- Huggingface Transformers: 2.md
+- trl 与微调: 3.md
+- RAG: 4.md
+- 其它增强方法: 5.md
+
+extra_javascript:
+- https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-AMS-MML_HTMLorMML
+markdown_extensions:
+  mdx_math:
+    enable_dollar_delimiter: true
